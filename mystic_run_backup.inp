@@ -1,0 +1,20 @@
+atmosphere_file US-standard     # model atmsophere
+source solar kurudz_0.1nm.dat   # extraterrestrial solar spectrum
+
+phi0 0                          # solar azimuth  
+zout toa                        # output altitude top of atmosphere   
+
+rte_solver mystic               # use MYSTIC solver
+mc_polarisation                 # switch on polarization  
+mc_std                          # calculate standard deviation 
+
+output_quantity transmittance   # specify output quantity
+
+quiet                           # suppress model output
+
+wavelength 443 
+umu 0.642788 
+sza 30 
+phi 0 
+mc_photons 10000 
+albedo 0.2 
