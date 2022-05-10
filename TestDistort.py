@@ -11,7 +11,7 @@ from datetime import datetime
 path = '/home/shai/Documents/Oracle_Code/libRadtran-2.0.4'
 
 #settings
-wavelength = 325
+wavelength = 700
 sza = 48
 umu_range = np.arange(-1, 0.9, 0.07)
 umu = list(umu_range)
@@ -19,9 +19,17 @@ phi = [0, 10]
 # code
 lrp_obj = lrp.LibRadPy(path)
 lrp_obj.setup()
-
-# lrp_obj.generate_uvspec_mie_input(wavelength, sza, umu, phi)
-# lrp_obj.run_mie()
+z_vec = np.arange(1, 120)
+tau_vec = np.ones(len(z_vec))
+lrp_obj.generate_optical_depth_input(z_vec, tau_vec)
+wavelength = 350
+sza = 48
+umu = [-1, -0.5, -0.1]
+phi = [0, 30, 60, 90]
+r_eff = 1
+wavelength_vec = [345, 355]
+wavelength_res = 0.1
+lrp_obj.generate_mie_input_cloud(r_eff, wavelength_vec, wavelength_res)
 lrp_obj.generate_uvspec_aerosol_custom_input(wavelength, sza, umu, phi)
 lrp_obj.run_uvspec('UVSPEC_AEROSOL_AUTO.INP')
 

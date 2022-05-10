@@ -1,5 +1,5 @@
 # Read me
-Libradtranpy is a library constructed to conrtol the libradtran code
+Libradtranpy is a library constructed to control the libradtran code
 and the generation of scenario automation.
 
 ## Setup

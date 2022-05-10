@@ -21,6 +21,17 @@ class LibRadPy:
         if 'auto_io_files' not in ls_list:
             os.mkdir('auto_io_files')
 
+    def test_mie(self):
+        wavelength = 350
+        sza = 48
+        umu = [-1, -0.5, -0.1]
+        phi = [0, 30, 60, 90]
+        r_eff = 1
+        wavelength_vec = [300, 355]
+        wavelength_res = 0.1
+        self.generate_mie_input(r_eff, wavelength_vec, wavelength_res)
+        self.run_mie()
+
     def example_mie_uvspec(self):
         wavelength = 350
         sza = 48
@@ -32,7 +43,29 @@ class LibRadPy:
         self.generate_mie_input(r_eff, wavelength_vec, wavelength_res)
         self.generate_uvspec_mie_input(wavelength, sza, umu, phi)
 
-    def generate_mie_input(self, r_eff, wavelength, wavelength_res, dist_gamma=7, n_stokes=4, n_lagandre=129):
+    def generate_mie_input_aerosol(self, r_eff, wavelength, wavelength_res, dist_sigma=7, n_stokes=4, n_lagandre=129):
+        os.chdir(self.path + '/auto_io_files')
+        now = datetime.now()
+        date_str = now.strftime("%m/%d/%Y, %H:%M:%S")
+        with open('MIE_AUTO.INP', 'w') as f:
+            f.write('# Auto generated Mie input for phase function and lagandre parameters\n')
+            f.write('# time: ' + date_str + '\n')
+            f.write('mie_program MIEV0\n')
+            f.write('refrac water\n')  # Use refractive index of water
+            f.write('r_eff  ' + str(r_eff) + '\n')  # Specify effective radius grid
+            f.write('distribution lognormal ' + str(dist_sigma) + '\n')  # Specify gamma size distribution (alpha=7)
+            f.write('wavelength   ' + str(wavelength[0]) + ' ' + str(wavelength[1]) + '\n')  # Define wavelength
+            f.write('wavelength_step ' + str(wavelength_res) + '\n')  # Define wavelength
+            f.write('nstokes ' + str(n_stokes) + '\n')  # Calculate all phase matrix elements
+            f.write('nmom_netcdf ' + str(
+                n_lagandre) + '\n')  # Number of Legendre terms to be stored innetcdf file, must be > number_of_streams
+            f.write('nthetamax 500\n')  # Maximum number of scattering angles to be used to store the phase matrix
+            # f.write('output_user netcdf\n')  # Write output to netcdf file
+            # f.write('output_user  pmom\n') #lambda refrac_real refrac_imag qext omega gg spike
+            f.write('verbose\n')  # Print verbose output
+        os.chdir(self.path)
+
+    def generate_mie_input_cloud(self, r_eff, wavelength, wavelength_res, dist_gamma=7, n_stokes=4, n_lagandre=129):
         os.chdir(self.path + '/auto_io_files')
         now = datetime.now()
         date_str = now.strftime("%m/%d/%Y, %H:%M:%S")
@@ -46,10 +79,10 @@ class LibRadPy:
             f.write('wavelength   ' + str(wavelength[0]) + ' ' + str(wavelength[1]) + '\n')  # Define wavelength
             f.write('wavelength_step ' + str(wavelength_res) + '\n')  # Define wavelength
             f.write('nstokes ' + str(n_stokes) + '\n')  # Calculate all phase matrix elements
-            f.write('nmom_netcdf ' + str(
-                n_lagandre) + '\n')  # Number of Legendre terms to be stored innetcdf file, must be > number_of_streams
+            f.write('nmom_netcdf ' + str(n_lagandre) + '\n')  # Number of Legendre terms to be stored innetcdf file, must be > number_of_streams
             f.write('nthetamax 500\n')  # Maximum number of scattering angles to be used to store the phase matrix
-            f.write('output_user netcdf\n')  # Write output to netcdf file
+            # f.write('output_user netcdf\n')  # Write output to netcdf file
+            # f.write('output_user  pmom\n') #lambda refrac_real refrac_imag qext omega gg spike
             f.write('verbose\n')  # Print verbose output
         os.chdir(self.path)
 
@@ -101,6 +134,21 @@ class LibRadPy:
             f.write('quiet')
         os.chdir(self.path)
 
+    def generate_optical_depth_input(self, z_vec, tau_vec):
+        sorted_order = np.argsort(z_vec)
+        z_vec_sorted = np.flip(z_vec[sorted_order])
+        tau_vec_sorted = np.flip(tau_vec[sorted_order])
+        os.chdir(self.path + '/auto_io_files')
+        now = datetime.now()
+        date_str = now.strftime("%m/%d/%Y, %H:%M:%S")
+        with open('AERO_TAU.DAT', 'w') as f:
+            f.write('# Auto generated optical depth profile\n')
+            f.write('# time: ' + date_str + '\n')
+            f.write('#      z     tau\n')
+            f.write('#     (km)  (aero)\n')
+            for ii in range(0, len(z_vec_sorted)):
+                f.write('    ' + str(z_vec_sorted[ii]) + '  ' + str(tau_vec_sorted[ii]) + '\n')
+
     def generate_uvspec_aerosol_custom_input(self, wavelength, sza, umu, phi):
         os.chdir(self.path + '/auto_io_files')
         now = datetime.now()
@@ -120,14 +168,16 @@ class LibRadPy:
             f.write('slit_function_file ../examples/TRI_SLIT.DAT\n')
             # f.write('spline 300 340 1         # Interpolate from first to last in step')
             #params from aerosol moments file
-            f.write('aerosol_vulcan 1          # Aerosol type above 2km\n')
-            f.write('aerosol_haze 6            # Aerosol type below 2km\n')
-            f.write('aerosol_season 1          # Summer season\n')
-            f.write('aerosol_visibility 50.0   # Visibility\n')
-            f.write('aerosol_angstrom 1.1 0.07 # Scale aerosol optical depth \n')
-            f.write('aerosol_modify gg set 0.70       # Set the asymmetry factor\n')
-            f.write('aerosol_file tau ../examples/AERO_TAU.DAT\n')
-            f.write('aerosol_file moments ../examples/AERO_MOMENTS.DAT\n')
+            f.write('aerosol_default\n')
+            # f.write('aerosol_vulcan 1          # Aerosol type above 2km\n')
+            # f.write('aerosol_haze 6            # Aerosol type below 2km\n')
+            # f.write('aerosol_season 1          # Summer season\n')
+            # f.write('aerosol_visibility 50.0   # Visibility\n')
+            # f.write('aerosol_angstrom 1.1 0.07 # Scale aerosol optical depth \n')
+            # f.write('aerosol_modify gg set 0.70       # Set the asymmetry factor\n')
+            f.write('aerosol_file tau AERO_TAU.DAT\n')
+            # f.write('aerosol_file moments ../AERO_MOMENTS.DAT\n')
+            f.write('aerosol_file moments temp.out\n')
             f.write('disort_intcor moments\n')
             f.write('phi0 30                  # Solar azimuth angle\n')
             f.write('phi ' + array_to_str(phi) + '\n')  # Calculate all phase matrix elements

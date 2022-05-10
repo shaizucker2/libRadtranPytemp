@@ -19,8 +19,10 @@ phi = [0, 10]
 lrp_obj = lrp.LibRadPy(path)
 lrp_obj.setup()
 
-# lrp_obj.generate_uvspec_mie_input(wavelength, sza, umu, phi)
-# lrp_obj.run_mie()
+lrp_obj.test_mie()
+
+lrp_obj.generate_uvspec_mie_input(wavelength, sza, umu, phi)
+lrp_obj.run_mie()
 lrp_obj.generate_uvspec_aerosol_input(wavelength, sza, umu, phi)
 lrp_obj.run_uvspec('UVSPEC_AEROSOL_AUTO.INP')
 
